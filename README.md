@@ -16,7 +16,9 @@ This node is designed for text preprocessing, caption analytics, or quick statis
 ✅ Deterministic results (not affected by seeds)  
 ✅ Works with any `STRING` input from other nodes  
 
-<img src="text_stats.png" alt="Text stats" width="600">
+<p align="center">
+  <img src="https://raw.githubusercontent.com/scofano/comfy-text-stats/main/text_stats.png" alt="Text stats" style="width: 100%; height: auto;">
+</p>
 
 ---
 
