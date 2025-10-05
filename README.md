@@ -16,6 +16,8 @@ This node is designed for text preprocessing, caption analytics, or quick statis
 ✅ Deterministic results (not affected by seeds)  
 ✅ Works with any `STRING` input from other nodes  
 
+https://github.com/scofano/comfy-text-stats/blob/main/text_stats.png
+
 ---
 
 ## 📦 Installation
