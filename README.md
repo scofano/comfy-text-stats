@@ -2,7 +2,8 @@
 
 A lightweight **ComfyUI custom node pack** with text utility nodes for working directly inside your workflows:
 
-- 🔁 **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
+- � **Character Search Replace** — applies per-character search/replace rules from a multiline mapping list
+- �🔁 **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
 - 🧮 **Text Stats** — returns character, word, and line counts
 - 🧼 **UTF-8 Cleaner** — normalizes punctuation and removes invisible/control characters while preserving valid Unicode text
 
@@ -15,6 +16,7 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
 ✅ Simple and fast — no external dependencies  
 ✅ Unicode-aware word detection (supports multilingual text)  
 ✅ Line counting for multiline inputs  
+✅ Editable multiline character replacement rules  
 ✅ Sequential line traversal with previous/next context windows  
 ✅ Visible line counter with seed-like auto-increment and manual reset control  
 ✅ UTF-8-safe text cleanup with smart punctuation normalization  
@@ -48,6 +50,7 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
    └── custom_nodes/
        └── comfy-text-stats/
            ├── __init__.py
+           ├── character_search_replace.py
            ├── line_context_counter.py
            ├── text_stats.py
            ├── utf8_processor.py
@@ -60,7 +63,54 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
 
 ## 🧠 Usage
 
-### 1) Line Context Counter
+### 1) Character Search Replace
+Category: `Text/Utils`
+
+### Inputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | The input text to process. Supports multiline input. |
+| `replacements` | STRING | Multiline replacement rules. Each non-empty line uses the first character as the search value and the remaining characters on that line as the replacement. If a line contains only one character, that character is removed. Spaces are treated as normal characters. |
+
+### Outputs
+| Name | Type | Description |
+|------|------|--------------|
+| `processed_text` | STRING | The text after applying the replacement rules in order from top to bottom. |
+
+Default replacement list:
+
+```text
+“"
+”"
+„"
+«"
+»"
+‘'
+’'
+‚'
+´'
+`'
+–-
+—, 
+−-
+‐-
+‑-
+•-
+·-
+*
+ _
+…...
+```
+
+Notes:
+- Each non-empty line defines one rule.
+- The first character in the line is always the character to search for.
+- Everything after the first character on the same line becomes the replacement.
+- A one-character line removes that character entirely.
+- Leading and trailing spaces in a rule are meaningful.
+- The default list is only a starting suggestion; you can edit it directly in the node.
+
+### 2) Line Context Counter
 Category: `Text/Utils`
 
 ### Inputs
@@ -98,7 +148,7 @@ Notes:
 - If there are no previous lines or no next lines available, that output is an empty string.
 - If the input text is empty, the node returns `counter = 0` and empty string outputs.
 
-### 2) Text Stats
+### 3) Text Stats
 Category: `Text/Utils`
 
 ### Inputs
@@ -113,7 +163,7 @@ Category: `Text/Utils`
 | `word_count` | INT | Number of words (using Unicode-aware regex). |
 | `line_count` | INT | Number of lines in the input text. |
 
-### 3) UTF-8 Cleaner
+### 4) UTF-8 Cleaner
 Category: `Text/Utils`
 
 ### Inputs
@@ -129,6 +179,16 @@ Category: `Text/Utils`
 ---
 
 ## 🧪 Example
+
+**Character Search Replace input text:**
+```text
+“hello”— world…*
+```
+
+**Default rules output:**
+```text
+"hello",_world...
+```
 
 **Line Context Counter input:**
 ```text
@@ -212,6 +272,7 @@ Olá... mundo - teste
 
 ## 🔧 Technical Details
 
+- `CharacterSearchReplace` parses the `replacements` field line by line and applies rules in order using the first character of each line as the search token and the remaining characters as the replacement text.
 - Word detection uses the regex:  
   ```python
   \b\w+\b
@@ -219,7 +280,7 @@ Olá... mundo - teste
   which matches Unicode word boundaries.
 - `LineContextCounter` uses a seed-like `set_counter` widget with `control_after_generate = "increment"`, so the counter updates automatically after each run in ComfyUI.
 - `LineContextCounter` selection is driven by the current input counter value and wraps around when the counter exceeds the available line count.
-- UTF-8 Cleaner normalizes text to Unicode NFC, replaces common smart punctuation (such as `…` → `...` and `–`/`—` → `-`), removes invisible/control characters, and preserves valid Unicode characters such as `áéíóúç`.
+- UTF-8 Cleaner normalizes text to Unicode NFC, replaces common smart punctuation (such as `…` -> `...` and `–`/`—` -> `-`), converts common arrows like `→` -> `->`, removes invisible/control characters, and preserves valid Unicode characters such as `áéíóúç`.
 - `TextStats` counts lines using `splitlines()`, so an empty string returns `0` lines.
 - `TextStats` and `UTF8Processor` are deterministic, and their `IS_CHANGED` implementations currently use input length as a lightweight cache hint.
 
@@ -228,6 +289,7 @@ Olá... mundo - teste
 ## 💡 Use Cases
 
 - Text preprocessing for captioning or prompt tuning  
+- Normalizing punctuation or replacing/removing unwanted characters  
 - Generating text metadata before feeding into LLM pipelines  
 - Measuring caption sizes in dataset workflows  
 - Cleaning copy/pasted text before saving or reusing it in prompts  

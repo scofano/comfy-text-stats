@@ -24,7 +24,16 @@ _CHAR_REPLACEMENTS = str.maketrans(
         ord("`"): "'",
         ord("•"): "-",
         ord("·"): "-",
+        ord("→"): "->",
+        ord("←"): "<-",
+        ord("↔"): "<->",
+        ord("⇒"): "=>",
+        ord("⇐"): "<=",
+        ord("⇔"): "<=>",
         ord("\u00A0"): " ",
+        ord("\u202F"): " ",
+        ord("\u2007"): " ",
+        ord("\u2009"): " ",
         ord("\u200B"): "",
         ord("\u200C"): "",
         ord("\u200D"): "",
@@ -64,7 +73,9 @@ class UTF8Processor:
     """
     Cleans text into a UTF-8-safe string while preserving valid Unicode letters.
     Replaces common smart punctuation with simpler equivalents and removes
-    invisible/control characters.
+    invisible/control characters. Also normalizes common arrow symbols to
+    ASCII equivalents and converts common non-breaking/thin spaces to regular
+    spaces so downstream Windows charmap encoders are less likely to fail.
     """
 
     @classmethod
