@@ -2,10 +2,12 @@
 
 A lightweight **ComfyUI custom node pack** with text utility nodes for working directly inside your workflows:
 
-- � **Character Search Replace** — applies per-character search/replace rules from a multiline mapping list
-- �🔁 **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
-- 🧮 **Text Stats** — returns character, word, and line counts
-- 🧼 **UTF-8 Cleaner** — normalizes punctuation and removes invisible/control characters while preserving valid Unicode text
+- **Character Search Replace** — applies per-character search/replace rules from a multiline mapping list
+- **Line Batch Chunk** — splits multiline text into fixed-size line batches using a batch index
+- **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
+- **Remove Empty Lines** — removes blank or whitespace-only lines from multiline text
+- **Text Stats** — returns character, word, and line counts
+- **UTF-8 Cleaner** — normalizes punctuation and removes invisible/control characters while preserving valid Unicode text
 
 This pack is useful for text preprocessing, caption analytics, prompt inspection, and quick metadata generation directly in ComfyUI.
 
@@ -17,8 +19,10 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
 ✅ Unicode-aware word detection (supports multilingual text)  
 ✅ Line counting for multiline inputs  
 ✅ Editable multiline character replacement rules  
+✅ Fixed-size multiline chunk extraction by batch number  
 ✅ Sequential line traversal with previous/next context windows  
 ✅ Visible line counter with seed-like auto-increment and manual reset control  
+✅ Empty-line cleanup for multiline strings  
 ✅ UTF-8-safe text cleanup with smart punctuation normalization  
 ✅ Deterministic utility nodes for stats and cleanup  
 ✅ Works with any `STRING` input from other nodes  
@@ -51,7 +55,9 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
        └── comfy-text-stats/
            ├── __init__.py
            ├── character_search_replace.py
+           ├── line_batch_chunk.py
            ├── line_context_counter.py
+           ├── remove_empty_lines.py
            ├── text_stats.py
            ├── utf8_processor.py
            ├── README.md
@@ -110,7 +116,29 @@ Notes:
 - Leading and trailing spaces in a rule are meaningful.
 - The default list is only a starting suggestion; you can edit it directly in the node.
 
-### 2) Line Context Counter
+### 2) Line Batch Chunk
+Category: `Text/Utils`
+
+### Inputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | Multiline text to split into chunks. |
+| `number_of_lines` | INT | How many lines each output chunk should contain. Minimum: `1`. |
+| `batch` | INT | Which chunk to return, starting at `1`. Batch `1` returns the first chunk, batch `2` the next chunk, and so on. This control auto-increments after each run like a seed. |
+
+### Outputs
+| Name | Type | Description |
+|------|------|--------------|
+| `chunk_text` | STRING | The requested batch of lines. Returns a partial chunk if only some lines remain, or an empty string if the batch is fully out of range. |
+
+Notes:
+- The node uses `splitlines()`, so each logical input line becomes one item in the batch calculation.
+- `batch = 1` with `number_of_lines = 2` returns lines `1-2`.
+- `batch = 2` with `number_of_lines = 2` returns lines `3-4`.
+- If the final chunk has fewer than `number_of_lines` available, only the remaining lines are returned.
+- If the requested batch starts beyond the available lines, the output is an empty string.
+
+### 3) Line Context Counter
 Category: `Text/Utils`
 
 ### Inputs
@@ -148,7 +176,25 @@ Notes:
 - If there are no previous lines or no next lines available, that output is an empty string.
 - If the input text is empty, the node returns `counter = 0` and empty string outputs.
 
-### 3) Text Stats
+### 4) Remove Empty Lines
+Category: `Text/Utils`
+
+### Inputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | Multiline text to clean. |
+
+### Outputs
+| Name | Type | Description |
+|------|------|--------------|
+| `processed_text` | STRING | The input text with empty and whitespace-only lines removed. |
+
+Notes:
+- Lines containing only spaces or tabs are treated as empty and removed.
+- Non-empty lines keep their original content and order.
+- The output is rejoined using newline characters.
+
+### 5) Text Stats
 Category: `Text/Utils`
 
 ### Inputs
@@ -163,7 +209,7 @@ Category: `Text/Utils`
 | `word_count` | INT | Number of words (using Unicode-aware regex). |
 | `line_count` | INT | Number of lines in the input text. |
 
-### 4) UTF-8 Cleaner
+### 6) UTF-8 Cleaner
 Category: `Text/Utils`
 
 ### Inputs
@@ -196,6 +242,36 @@ alpha
 beta
 gamma
 delta
+```
+
+**Line Batch Chunk input:**
+```text
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+```
+
+**Line Batch Chunk examples:**
+```text
+number_of_lines = 2, batch = 1 -> 1
+2
+
+number_of_lines = 2, batch = 2 -> 3
+4
+
+number_of_lines = 6, batch = 2 -> 7
+8
+9
+10
+
+number_of_lines = 6, batch = 3 -> ""
 ```
 
 **Run 1 outputs (defaults, `set_counter = 1`, `previous_lines = 1`, `next_lines = 1`):**
@@ -268,6 +344,23 @@ becomes:
 Olá... mundo - teste
 ```
 
+**Remove Empty Lines input:**
+```text
+alpha
+
+   
+beta
+
+gamma
+```
+
+**Remove Empty Lines output:**
+```text
+alpha
+beta
+gamma
+```
+
 ---
 
 ## 🔧 Technical Details
@@ -278,8 +371,10 @@ Olá... mundo - teste
   \b\w+\b
   ```
   which matches Unicode word boundaries.
+- `LineBatchChunk` calculates the starting line using `(batch - 1) * number_of_lines` and returns up to `number_of_lines` lines from that position.
 - `LineContextCounter` uses a seed-like `set_counter` widget with `control_after_generate = "increment"`, so the counter updates automatically after each run in ComfyUI.
 - `LineContextCounter` selection is driven by the current input counter value and wraps around when the counter exceeds the available line count.
+- `RemoveEmptyLines` removes lines whose content is empty after trimming whitespace.
 - UTF-8 Cleaner normalizes text to Unicode NFC, replaces common smart punctuation (such as `…` -> `...` and `–`/`—` -> `-`), converts common arrows like `→` -> `->`, removes invisible/control characters, and preserves valid Unicode characters such as `áéíóúç`.
 - `TextStats` counts lines using `splitlines()`, so an empty string returns `0` lines.
 - `TextStats` and `UTF8Processor` are deterministic, and their `IS_CHANGED` implementations currently use input length as a lightweight cache hint.
@@ -290,6 +385,7 @@ Olá... mundo - teste
 
 - Text preprocessing for captioning or prompt tuning  
 - Normalizing punctuation or replacing/removing unwanted characters  
+- Splitting long multiline prompts or subtitle blocks into chunked batches  
 - Generating text metadata before feeding into LLM pipelines  
 - Measuring caption sizes in dataset workflows  
 - Cleaning copy/pasted text before saving or reusing it in prompts  
