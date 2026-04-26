@@ -3,26 +3,26 @@ from typing import List, Tuple
 
 
 DEFAULT_REPLACEMENTS = (
-    "“\"\n"
-    "”\"\n"
-    "„\"\n"
-    "«\"\n"
-    "»\"\n"
-    "‘'\n"
-    "’'\n"
-    "‚'\n"
-    "´'\n"
-    "`'\n"
-    "–-\n"
-    "—, \n"
-    "−-\n"
-    "‐-\n"
-    "‑-\n"
-    "•-\n"
-    "·-\n"
-    "*\n"
-    " _\n"
-    "…..."
+    "“|\"\n"
+    "”|\"\n"
+    "„|\"\n"
+    "«|\"\n"
+    "»|\"\n"
+    "‘|'\n"
+    "’|'\n"
+    "‚|'\n"
+    "´|'\n"
+    "`|'\n"
+    "–|-\n"
+    "—|, \n"
+    "−|-\n"
+    "‐|-\n"
+    "‑|-\n"
+    "•|-\n"
+    "·|-\n"
+    "*|\n"
+    " |_\n"
+    "…|..."
 )
 
 
@@ -30,12 +30,13 @@ def _parse_replacement_rules(replacements: str) -> List[Tuple[str, str]]:
     rules: List[Tuple[str, str]] = []
 
     for line in replacements.splitlines():
-        if line == "":
+        if not line:
             continue
-
-        search = line[0]
-        replace = line[1:]
-        rules.append((search, replace))
+        if "|" not in line:
+            continue
+        search, replace = line.split("|", 1)
+        if search:
+            rules.append((search, replace))
 
     return rules
 
@@ -51,15 +52,14 @@ def _replace_characters(text: str, replacements: str) -> str:
 
 class CharacterSearchReplace:
     """
-    Replaces characters in a string using a multiline mapping list.
+    Replaces strings using a multiline mapping list.
 
-    Each non-empty line in the replacement list defines one rule:
-    - first character: character to search for
-    - remaining characters on the same line: replacement text
-    - if the line contains only one character, that character is removed
+    Each non-empty line defines one rule using a `|` separator:
+      search_string|replacement_string
 
-    Spaces are treated as valid characters, so rules can search for or replace
-    spaces as needed.
+    Everything before the first `|` is the search target (may be multiple
+    characters). Everything after is the replacement (may be empty, to delete).
+    Lines without `|` are silently skipped.
     """
 
     @classmethod

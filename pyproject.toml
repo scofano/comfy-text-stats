@@ -1,7 +1,7 @@
 [project]
 name = "comfy-text-stats"
 description = "A lightweight ComfyUI custom node pack with text utility nodes for stats, cleanup, replacement, chunking, and line-context workflows."
-version = "1.5.0"
+version = "1.6.0"
 readme = "README.md"
 license = {file = "LICENSE"} 
 # classifiers = [

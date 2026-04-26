@@ -2,7 +2,7 @@
 
 A lightweight **ComfyUI custom node pack** with text utility nodes for working directly inside your workflows:
 
-- **Character Search Replace** — applies per-character search/replace rules from a multiline mapping list
+- **Character Search Replace** — applies search/replace rules from a multiline mapping list using a `|` separator, supporting multi-character search and replace strings
 - **Line Batch Chunk** — splits multiline text into fixed-size line batches using a batch index
 - **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
 - **Remove Empty Lines** — removes blank or whitespace-only lines from multiline text
@@ -76,7 +76,7 @@ Category: `Text/Utils`
 | Name | Type | Description |
 |------|------|--------------|
 | `text` | STRING | The input text to process. Supports multiline input. |
-| `replacements` | STRING | Multiline replacement rules. Each non-empty line uses the first character as the search value and the remaining characters on that line as the replacement. If a line contains only one character, that character is removed. Spaces are treated as normal characters. |
+| `replacements` | STRING | Multiline replacement rules. Each non-empty line defines one rule as `search|replacement`. Everything before the first `\|` is the search string (may be multiple characters); everything after is the replacement (may be empty to delete). Lines without `\|` are silently skipped. |
 
 ### Outputs
 | Name | Type | Description |
@@ -86,33 +86,33 @@ Category: `Text/Utils`
 Default replacement list:
 
 ```text
-“"
-”"
-„"
-«"
-»"
-‘'
-’'
-‚'
-´'
-`'
-–-
-—, 
-−-
-‐-
-‑-
-•-
-·-
-*
- _
-…...
+“|”
+“|”
+„|”
+«|”
+»|”
+‘|’
+‘|’
+‚|’
+´|’
+`|’
+–|-
+—|, 
+−|-
+‐|-
+‑|-
+•|-
+·|-
+*|
+ |_
+…|...
 ```
 
 Notes:
-- Each non-empty line defines one rule.
-- The first character in the line is always the character to search for.
-- Everything after the first character on the same line becomes the replacement.
-- A one-character line removes that character entirely.
+- Each non-empty line defines one rule using `search|replacement` format.
+- Everything before the first `|` is the search string — it can be one or more characters (e.g. `,10|,` replaces `,10` with `,`).
+- Everything after the `|` is the replacement — it can be empty (to delete the search string), one character, or multiple characters.
+- Lines without a `|` are silently ignored.
 - Leading and trailing spaces in a rule are meaningful.
 - The default list is only a starting suggestion; you can edit it directly in the node.
 
@@ -365,7 +365,7 @@ gamma
 
 ## 🔧 Technical Details
 
-- `CharacterSearchReplace` parses the `replacements` field line by line and applies rules in order using the first character of each line as the search token and the remaining characters as the replacement text.
+- `CharacterSearchReplace` parses the `replacements` field line by line. Each rule uses `search|replacement` format: everything before the first `|` is the search string (any length), everything after is the replacement (may be empty). Rules are applied in order using Python's `str.replace()`.
 - Word detection uses the regex:  
   ```python
   \b\w+\b
