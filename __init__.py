@@ -5,6 +5,8 @@ from .line_batch_chunk import LineBatchChunk
 from .line_context_counter import LineContextCounter
 from .remove_empty_lines import RemoveEmptyLines
 from .text_stats import TextStats
+from .text_load_from_file import TextLoadFromFile
+from .text_string_truncate import TextStringTruncate
 from .utf8_processor import UTF8Processor
 
 NODE_CLASS_MAPPINGS = {
@@ -13,6 +15,8 @@ NODE_CLASS_MAPPINGS = {
     "LineContextCounter": LineContextCounter,
     "RemoveEmptyLines": RemoveEmptyLines,
     "TextStats": TextStats,
+    "TextLoadFromFile": TextLoadFromFile,
+    "TextStringTruncate": TextStringTruncate,
     "UTF8Processor": UTF8Processor,
 }
 
@@ -22,6 +26,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LineContextCounter": "Text -> Line Context Counter",
     "RemoveEmptyLines": "Text -> Remove Empty Lines",
     "TextStats": "Text -> Char, Word & Line Count",
+    "TextLoadFromFile": "Text -> Load Text File",
+    "TextStringTruncate": "Text -> String Truncate",
     "UTF8Processor": "Text -> UTF-8 Cleaner",
 }
 
@@ -33,7 +39,9 @@ __all__ = [
     "LineContextCounter",
     "RemoveEmptyLines",
     "TextStats",
+    "TextLoadFromFile",
+    "TextStringTruncate",
     "UTF8Processor",
 ]
 
-__version__ = "1.5.0"
+__version__ = "1.7.0"

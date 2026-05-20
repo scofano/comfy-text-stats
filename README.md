@@ -7,6 +7,8 @@ A lightweight **ComfyUI custom node pack** with text utility nodes for working d
 - **Line Context Counter** — uses a visible counter that auto-increments like a seed and returns the current, previous, and next line context
 - **Remove Empty Lines** — removes blank or whitespace-only lines from multiline text
 - **Text Stats** — returns character, word, and line counts
+- **Text Load From File** — loads a UTF-8 text file, skips comment lines, and returns both joined text and a line dictionary
+- **Text String Truncate** — truncates a string to a given number of characters or words, from the beginning or end
 - **UTF-8 Cleaner** — normalizes punctuation and removes invisible/control characters while preserving valid Unicode text
 
 This pack is useful for text preprocessing, caption analytics, prompt inspection, and quick metadata generation directly in ComfyUI.
@@ -25,6 +27,8 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
 ✅ Empty-line cleanup for multiline strings  
 ✅ UTF-8-safe text cleanup with smart punctuation normalization  
 ✅ Deterministic utility nodes for stats and cleanup  
+✅ String truncation by character or word count, from either end
+✅ UTF-8 text file loading with comment-line filtering
 ✅ Works with any `STRING` input from other nodes  
 
 <p align="center">
@@ -59,6 +63,8 @@ This pack is useful for text preprocessing, caption analytics, prompt inspection
            ├── line_context_counter.py
            ├── remove_empty_lines.py
            ├── text_stats.py
+           ├── text_load_from_file.py
+           ├── text_string_truncate.py
            ├── utf8_processor.py
            ├── README.md
            └── requirements.txt
@@ -222,6 +228,51 @@ Category: `Text/Utils`
 |------|------|--------------|
 | `clean_text` | STRING | Cleaned UTF-8-safe text with common smart punctuation normalized and invisible/control characters removed. |
 
+### 7) Text Load From File
+Category: `Text/Utils`
+
+### Inputs
+| Name | Type | Description |
+|------|------|--------------|
+| `file_path` | STRING | Path to the UTF-8 text file to load. |
+| `dictionary_name` | STRING | Output dictionary key. Use `[filename]` to use the file name without extension, or enter a custom key. |
+
+### Outputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | Loaded file content after comment-line filtering, rejoined with newline characters. |
+| `dictionary` | DICT | Dictionary containing one key mapped to the filtered line list. |
+
+Notes:
+- Lines whose trimmed content starts with `#` are skipped.
+- Remaining lines have `\n` and `\r` removed before being returned.
+- If `dictionary_name = "[filename]"`, the dictionary key is the source file name without extension.
+- If the file path does not exist, the node returns an empty string and `{key: []}`.
+- The file is read as UTF-8.
+
+### 8) Text String Truncate
+Category: `Text/Utils`
+
+### Inputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | The input text to truncate. Supports multiline input. |
+| `truncate_to` | INT | Target length. Positive values keep that many units from the selected side. Negative values use Python-style slicing from the selected side. |
+| `truncate_by` | `["characters", "words"]` | Unit of truncation: by character count or word count. |
+| `truncate_from` | `["end", "beginning"]` | Which side to slice from. `"beginning"` slices from the start of the text. `"end"` slices from the end of the text. |
+
+### Outputs
+| Name | Type | Description |
+|------|------|--------------|
+| `text` | STRING | The truncated string. |
+
+Notes:
+- When `truncate_by = "characters"`, the string is sliced by character index.
+- When `truncate_by = "words"`, the string is split on whitespace and the requested number of words are kept.
+- `truncate_from = "beginning"` with a positive `truncate_to` keeps the first N characters/words; with a negative value it keeps the last N characters/words.
+- `truncate_from = "end"` with a positive `truncate_to` keeps the last N characters/words; with a negative value it removes the last N characters/words.
+- If the input text is empty or the requested length is zero, the result is an empty string.
+
 ---
 
 ## 🧪 Example
@@ -361,6 +412,24 @@ beta
 gamma
 ```
 
+**Text Load From File input file (`example.txt`):**
+```text
+# comment lines are skipped
+alpha
+beta
+# another comment
+gamma
+```
+
+**Text Load From File outputs (`dictionary_name = "[filename]"`):**
+```text
+text = alpha
+beta
+gamma
+
+dictionary = {"example": ["alpha", "beta", "gamma"]}
+```
+
 ---
 
 ## 🔧 Technical Details
@@ -376,6 +445,7 @@ gamma
 - `LineContextCounter` selection is driven by the current input counter value and wraps around when the counter exceeds the available line count.
 - `RemoveEmptyLines` removes lines whose content is empty after trimming whitespace.
 - UTF-8 Cleaner normalizes text to Unicode NFC, replaces common smart punctuation (such as `…` -> `...` and `–`/`—` -> `-`), converts common arrows like `→` -> `->`, removes invisible/control characters, and preserves valid Unicode characters such as `áéíóúç`.
+- `TextLoadFromFile` reads UTF-8 files, removes lines whose trimmed content starts with `#`, strips newline/carriage-return characters from each retained line, and returns both joined text and a `{dictionary_name: lines}` dictionary.
 - `TextStats` counts lines using `splitlines()`, so an empty string returns `0` lines.
 - `TextStats` and `UTF8Processor` are deterministic, and their `IS_CHANGED` implementations currently use input length as a lightweight cache hint.
 
@@ -390,6 +460,7 @@ gamma
 - Measuring caption sizes in dataset workflows  
 - Cleaning copy/pasted text before saving or reusing it in prompts  
 - Stepping through caption or subtitle files one line at a time with surrounding context  
+- Loading prompt, caption, or dictionary text files while ignoring `#` comment lines
 
 ---
 
